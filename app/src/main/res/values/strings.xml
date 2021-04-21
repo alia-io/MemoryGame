@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">MemoryGame</string>
+
+    <!--ChooseDifficultyActivity-->
+    <string name="first_activity_instruction">Choose a Difficulty</string>
+    <string name="easy_button">Easy</string>
+    <string name="medium_button">Medium</string>
+    <string name="difficult_button">Difficult</string>
 </resources>
