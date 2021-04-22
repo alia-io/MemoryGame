@@ -3,25 +3,26 @@ package com.example.memorygame;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.GridLayout;
-import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class MainGameActivity extends AppCompatActivity {
 
     private int score = 0;
+    private int numberOfCardsLeft = 0;
     private int difficulty;
     private GridLayout grid;
     private int lastFlippedCardIndex = -1;
 
     // Integer Id = R.drawable.name, Integer NumberAvailable
-    HashMap<Integer, Integer> cardResources = new HashMap<Integer, Integer>(16);
+    ArrayList<CardResource> cardResources = new ArrayList<CardResource>(16);
+    ArrayList<Card> cardsOnBoard = new ArrayList<Card>(32);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,95 +50,110 @@ public class MainGameActivity extends AppCompatActivity {
     }
 
     private void setCardResources() {
-        ArrayList<Integer> cardResourceIds = new ArrayList<Integer>(16);
-
         // Add all the face-up cards
-        cardResourceIds.add(R.drawable.card_0);
-        cardResourceIds.add(R.drawable.card_1);
-        cardResourceIds.add(R.drawable.card_2);
-        cardResourceIds.add(R.drawable.card_3);
-        cardResourceIds.add(R.drawable.card_4);
-        cardResourceIds.add(R.drawable.card_5);
-        cardResourceIds.add(R.drawable.card_6);
-        cardResourceIds.add(R.drawable.card_7);
-        cardResourceIds.add(R.drawable.card_8);
-        cardResourceIds.add(R.drawable.card_9);
-        cardResourceIds.add(R.drawable.card_10);
-        cardResourceIds.add(R.drawable.card_11);
-        cardResourceIds.add(R.drawable.card_12);
-        cardResourceIds.add(R.drawable.card_13);
-        cardResourceIds.add(R.drawable.card_14);
-        //cardResourceIds.add(R.drawable.card_15);
+        cardResources.add(new CardResource(0, R.drawable.card_0));
+        cardResources.add(new CardResource(1, R.drawable.card_1));
+        cardResources.add(new CardResource(2, R.drawable.card_2));
+        cardResources.add(new CardResource(3, R.drawable.card_3));
+        cardResources.add(new CardResource(4, R.drawable.card_4));
+        cardResources.add(new CardResource(5, R.drawable.card_5));
+        cardResources.add(new CardResource(6, R.drawable.card_6));
+        cardResources.add(new CardResource(7, R.drawable.card_7));
+        cardResources.add(new CardResource(8, R.drawable.card_8));
+        cardResources.add(new CardResource(9, R.drawable.card_9));
+        cardResources.add(new CardResource(10, R.drawable.card_10));
+        cardResources.add(new CardResource(11, R.drawable.card_11));
+        cardResources.add(new CardResource(12, R.drawable.card_12));
+        cardResources.add(new CardResource(13, R.drawable.card_13));
+        cardResources.add(new CardResource(14, R.drawable.card_14));
+        cardResources.add(new CardResource(15, R.drawable.card_15));
 
-        for (int id : cardResourceIds) cardResources.put(id, 2);
-
-        if (difficulty == 3) { // difficult (32 cards / 16 pairs)
-            return; // Keep all 16 pairs
-        } else if (difficulty == 2) { // medium (20 cards / 10 pairs)
-            // Remove 6 pairs
-
-        } else { // easy (12 cards / 6 pairs)
-            // Remove 10 pairs
-
+        if (difficulty == 2) { // medium (20 cards / 10 pairs)
+            for (int i = 0; i < 6; i++) { // Remove 6 resources
+                cardResources.remove((int) (Math.random() * cardResources.size()));
+            }
+        } else if (difficulty == 1) { // easy (12 cards / 6 pairs)
+            for (int i = 0; i < 10; i++) { // Remove 10 resources
+                cardResources.remove((int) (Math.random() * cardResources.size()));
+            }
         }
     }
 
     private void initializeGrid(int viewWidth, int viewHeight) {
-
-        grid = findViewById(R.id.main_grid);
+        int cardSide = 0;
         int side;
+        int padding;
 
         if (viewWidth < viewHeight) side = viewWidth;
         else side = viewHeight;
 
+        padding = (int) Math.floor(side * 0.02);
+        grid = findViewById(R.id.main_grid);
+
         if (difficulty == 3) { // difficult (4x8)
-            int cardSide = (int) Math.floor(side * 0.2);
-            int padding = (int) Math.floor(side * 0.02);
+            cardSide = (int) Math.floor(side * 0.2);
+            numberOfCardsLeft = 32;
             grid.setColumnCount(4);
-            for (int i = 0; i < 32; i++) {
-                ImageView imageView = new ImageView(getApplicationContext());
-                imageView.setImageResource(R.drawable.card_9);
-                imageView.setPadding(padding, padding, padding, padding);
-                imageView.setLayoutParams(new LinearLayout.LayoutParams(cardSide, cardSide));
-                grid.addView(imageView);
-                //Card card = new Card();
-            }
         } else if (difficulty == 2) { // medium (4x5)
-            int cardSide = (int) Math.floor(side * 0.2);
-            int padding = (int) Math.floor(side * 0.02);
+            cardSide = (int) Math.floor(side * 0.2);
+            numberOfCardsLeft = 20;
             grid.setColumnCount(4);
-            for (int i = 0; i < 20; i++) {
-                ImageView imageView = new ImageView(getApplicationContext());
-                imageView.setImageResource(R.drawable.empty_card_slot);
-                imageView.setPadding(padding, padding, padding, padding);
-                imageView.setLayoutParams(new LinearLayout.LayoutParams(cardSide, cardSide));
-                grid.addView(imageView);
-                //Card card = new Card();
-            }
         } else { // easy (3x4)
-            int cardSide = (int) Math.floor(side * 0.24);
-            int padding = (int) Math.floor(side * 0.02);
+            cardSide = (int) Math.floor(side * 0.24);
+            numberOfCardsLeft = 12;
             grid.setColumnCount(3);
-            for (int i = 0; i < 12; i++) {
-                ImageView imageView = new ImageView(getApplicationContext());
-                imageView.setImageResource(R.drawable.card_back);
-                imageView.setPadding(padding, padding, padding, padding);
-                imageView.setLayoutParams(new LinearLayout.LayoutParams(cardSide, cardSide));
-                grid.addView(imageView);
-                //Card card = new Card();
-            }
+        }
+
+        for (int i = 0; i < numberOfCardsLeft; i++) {
+            int random = (int) (Math.random() * cardResources.size());
+            CardResource cardResource = cardResources.get(random);
+            cardResource.numberAvailable--;
+            if (cardResource.numberAvailable <= 0) cardResources.remove(random);
+            new Card(cardResource.drawableId, cardResource.cardNumber, i, cardSide, padding);
+        }
+    }
+
+    private class CardResource {
+        private int cardNumber;
+        private int drawableId;
+        private int numberAvailable;
+
+        private CardResource(int cardNumber, int drawableId) {
+            this.cardNumber = cardNumber;
+            this.drawableId = drawableId;
+            numberAvailable = 2;
         }
     }
 
     private class Card {
-        private ImageView image;
+        private ImageButton button;
         private boolean matched;
+        private int drawableId;
         private int cardNumber;
         private int layoutIndex;
 
-        private Card(ImageView image, int cardNumber, int layoutIndex) {
-            this.image = image;
+        private Card(int drawableId, int cardNumber, int layoutIndex, int sideLength, int paddingLength) {
+            Log.d("Card", "Id = " + drawableId + ", number = " + cardNumber + ", index = " + layoutIndex
+                + ", side = " + sideLength + ", padding = " + paddingLength);
+
+            this.drawableId = drawableId;
             this.cardNumber = cardNumber;
+            this.layoutIndex = layoutIndex;
+            matched = false;
+
+            button = new ImageButton(getApplicationContext());
+            button.setImageResource(R.drawable.card_back);
+            button.setAdjustViewBounds(true);
+            button.setBackground(null);
+            button.setPadding(paddingLength, paddingLength, paddingLength, paddingLength);
+            button.setLayoutParams(new LinearLayout.LayoutParams(sideLength, sideLength));
+
+            button.setOnClickListener(view -> {
+                Log.d("Card", "Card #" + layoutIndex + " Clicked");
+                // TODO: card button action on click
+            });
+
+            grid.addView(button);
         }
     }
 }
