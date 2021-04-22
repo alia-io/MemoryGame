@@ -6,4 +6,8 @@
     <string name="easy_button">Easy</string>
     <string name="medium_button">Medium</string>
     <string name="difficult_button">Difficult</string>
+
+    <!--GameOverActivity-->
+    <string name="game_over">Game Over!</string>
+    <string name="play_again">Play Again</string>
 </resources>

@@ -2,8 +2,8 @@ package com.example.memorygame;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.GridLayout;
@@ -11,18 +11,22 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainGameActivity extends AppCompatActivity {
 
     private int score = 0;
-    private int numberOfCardsLeft = 0;
     private int difficulty;
     private GridLayout grid;
     private int lastFlippedCardIndex = -1;
+    private boolean allowCardFlips = false;
+    Timer timer = new Timer();
 
     // Integer Id = R.drawable.name, Integer NumberAvailable
     ArrayList<CardResource> cardResources = new ArrayList<CardResource>(16);
     ArrayList<Card> cardsOnBoard = new ArrayList<Card>(32);
+    int numberOfCards = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +51,8 @@ public class MainGameActivity extends AppCompatActivity {
                 }
             });
         }
+
+        allowCardFlips = true;
     }
 
     private void setCardResources() {
@@ -80,7 +86,7 @@ public class MainGameActivity extends AppCompatActivity {
     }
 
     private void initializeGrid(int viewWidth, int viewHeight) {
-        int cardSide = 0;
+        int cardSide;
         int side;
         int padding;
 
@@ -92,24 +98,32 @@ public class MainGameActivity extends AppCompatActivity {
 
         if (difficulty == 3) { // difficult (4x8)
             cardSide = (int) Math.floor(side * 0.2);
-            numberOfCardsLeft = 32;
+            numberOfCards = 32;
             grid.setColumnCount(4);
         } else if (difficulty == 2) { // medium (4x5)
             cardSide = (int) Math.floor(side * 0.2);
-            numberOfCardsLeft = 20;
+            numberOfCards = 20;
             grid.setColumnCount(4);
         } else { // easy (3x4)
             cardSide = (int) Math.floor(side * 0.24);
-            numberOfCardsLeft = 12;
+            numberOfCards = 12;
             grid.setColumnCount(3);
         }
 
-        for (int i = 0; i < numberOfCardsLeft; i++) {
+        for (int i = 0; i < numberOfCards; i++) {
             int random = (int) (Math.random() * cardResources.size());
             CardResource cardResource = cardResources.get(random);
+            Card card = new Card(cardResource.drawableId, cardResource.cardNumber, i, cardSide, padding);
             cardResource.numberAvailable--;
-            if (cardResource.numberAvailable <= 0) cardResources.remove(random);
-            new Card(cardResource.drawableId, cardResource.cardNumber, i, cardSide, padding);
+            if (cardResource.numberAvailable > 0) {
+                cardResource.firstCardIndex = i;
+            } else {
+                int index = cardResource.firstCardIndex;
+                cardsOnBoard.get(index).matchIndex = i;
+                card.matchIndex = index;
+                cardResources.remove(random);
+            }
+            cardsOnBoard.add(card);
         }
     }
 
@@ -117,6 +131,7 @@ public class MainGameActivity extends AppCompatActivity {
         private int cardNumber;
         private int drawableId;
         private int numberAvailable;
+        private int firstCardIndex;
 
         private CardResource(int cardNumber, int drawableId) {
             this.cardNumber = cardNumber;
@@ -131,11 +146,9 @@ public class MainGameActivity extends AppCompatActivity {
         private int drawableId;
         private int cardNumber;
         private int layoutIndex;
+        private int matchIndex;
 
         private Card(int drawableId, int cardNumber, int layoutIndex, int sideLength, int paddingLength) {
-            Log.d("Card", "Id = " + drawableId + ", number = " + cardNumber + ", index = " + layoutIndex
-                + ", side = " + sideLength + ", padding = " + paddingLength);
-
             this.drawableId = drawableId;
             this.cardNumber = cardNumber;
             this.layoutIndex = layoutIndex;
@@ -149,11 +162,71 @@ public class MainGameActivity extends AppCompatActivity {
             button.setLayoutParams(new LinearLayout.LayoutParams(sideLength, sideLength));
 
             button.setOnClickListener(view -> {
-                Log.d("Card", "Card #" + layoutIndex + " Clicked");
-                // TODO: card button action on click
+                flipCard(this);
             });
 
             grid.addView(button);
         }
+    }
+
+    private synchronized void flipCard(Card card) {
+        if (allowCardFlips && !card.matched && lastFlippedCardIndex != card.layoutIndex) {
+            allowCardFlips = false;
+            score++;
+            card.button.setImageResource(card.drawableId);
+            if (lastFlippedCardIndex == -1) { // First card in pair flipped
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        allowCardFlips = true;
+                    }
+                }, 10);
+                lastFlippedCardIndex = card.layoutIndex;
+            } else if (lastFlippedCardIndex == card.matchIndex) { // Match found
+                allowCardFlips = false;
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        Card otherCard = cardsOnBoard.get(lastFlippedCardIndex);
+                        numberOfCards -= 2;
+                        card.matched = true;
+                        otherCard.matched = true;
+                        card.button.setImageResource(R.drawable.card_match);
+                        otherCard.button.setImageResource(R.drawable.card_match);
+                        lastFlippedCardIndex = -1;
+                        timer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                card.button.setImageResource(R.drawable.empty_card_slot);
+                                otherCard.button.setImageResource(R.drawable.empty_card_slot);
+                            }
+                        }, 200);
+                        if (numberOfCards <= 0) {
+                            gameOver();
+                        } else {
+                            allowCardFlips = true;
+                        }
+                    }
+                }, 300);
+            } else { // Bad match
+                allowCardFlips = false;
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        Card otherCard = cardsOnBoard.get(lastFlippedCardIndex);
+                        card.button.setImageResource(R.drawable.card_back);
+                        otherCard.button.setImageResource(R.drawable.card_back);
+                        lastFlippedCardIndex = -1;
+                        allowCardFlips = true;
+                    }
+                }, 500);
+            }
+        }
+    }
+
+    private void gameOver() {
+        Intent intent = new Intent(this, GameOverActivity.class);
+        intent.putExtra("score", score);
+        startActivity(intent);
     }
 }
