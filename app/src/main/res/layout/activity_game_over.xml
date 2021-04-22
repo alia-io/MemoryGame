@@ -3,23 +3,25 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:background="@color/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".GameOverActivity">
     <TextView
         android:id="@+id/game_over_text"
         android:text="@string/game_over"
-        android:textSize="32sp"
-        android:textColor="@color/card_back"
+        android:textSize="42sp"
+        android:textColor="@color/card_border"
+        android:layout_marginBottom="20dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintBottom_toTopOf="@id/score_text" />
     <TextView
         android:id="@+id/score_text"
-        android:textSize="42sp"
-        android:textColor="@color/card_border"
+        android:textSize="32sp"
+        android:textColor="@color/card_back"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"

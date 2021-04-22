@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.GridLayout;
@@ -225,6 +226,7 @@ public class MainGameActivity extends AppCompatActivity {
     }
 
     private void gameOver() {
+        //Log.d("EndGame", "Game Over called");
         Intent intent = new Intent(this, GameOverActivity.class);
         intent.putExtra("score", score);
         startActivity(intent);

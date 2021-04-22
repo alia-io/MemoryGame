@@ -10,4 +10,6 @@
     <!--GameOverActivity-->
     <string name="game_over">Game Over!</string>
     <string name="play_again">Play Again</string>
+    <string name="score_text">Score:</string>
+    <string name="error_text">Something went wrong!</string>
 </resources>
