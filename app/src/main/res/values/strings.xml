@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">MemoryGame</string>
+    <string name="app_name">Memory Match</string>
 
     <!--ChooseDifficultyActivity-->
     <string name="first_activity_instruction">Choose a Difficulty</string>
