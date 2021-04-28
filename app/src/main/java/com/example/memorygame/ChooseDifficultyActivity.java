@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
+// First Activity - Choose Easy, Medium, or Difficult
 public class ChooseDifficultyActivity extends AppCompatActivity {
 
     @Override

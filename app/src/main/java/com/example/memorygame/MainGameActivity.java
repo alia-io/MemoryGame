@@ -4,7 +4,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.GridLayout;
@@ -15,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+// Second Activity - Memory Game
 public class MainGameActivity extends AppCompatActivity {
 
     private int score = 0;
@@ -24,10 +24,12 @@ public class MainGameActivity extends AppCompatActivity {
     private boolean allowCardFlips = false;
     Timer timer = new Timer();
 
-    // Integer Id = R.drawable.name, Integer NumberAvailable
+    // List of available card resources (drawable ID, card number, number available)
     ArrayList<CardResource> cardResources = new ArrayList<CardResource>(16);
+
+    // List of cards in the current game
     ArrayList<Card> cardsOnBoard = new ArrayList<Card>(32);
-    int numberOfCards = 0;
+    int numberOfCards = 0; // Number of cards left to clear
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,14 +50,15 @@ public class MainGameActivity extends AppCompatActivity {
                 @Override
                 public void onGlobalLayout() {
                     view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                    initializeGrid(view.getWidth(), view.getHeight());
+                    initializeGrid(view.getWidth(), view.getHeight()); // Set card sizes based on available screen size
                 }
             });
         }
 
-        allowCardFlips = true;
+        allowCardFlips = true; // Allow player actions to flip cards
     }
 
+    /* Adds the appropriate number of card/image resources to cardResources list based on game difficulty */
     private void setCardResources() {
         // Add all the face-up cards
         cardResources.add(new CardResource(0, R.drawable.card_0));
@@ -86,6 +89,7 @@ public class MainGameActivity extends AppCompatActivity {
         }
     }
 
+    /* Initializes card objects and their locations, adds card images face-down to the grid */
     private void initializeGrid(int viewWidth, int viewHeight) {
         int cardSide;
         int side;
@@ -113,12 +117,13 @@ public class MainGameActivity extends AppCompatActivity {
 
         for (int i = 0; i < numberOfCards; i++) {
             int random = (int) (Math.random() * cardResources.size());
-            CardResource cardResource = cardResources.get(random);
+            CardResource cardResource = cardResources.get(random); // Get a random resource from the pool
+            // Initialize new card; it is added to the grid through initialization
             Card card = new Card(cardResource.drawableId, cardResource.cardNumber, i, cardSide, padding);
             cardResource.numberAvailable--;
             if (cardResource.numberAvailable > 0) {
                 cardResource.firstCardIndex = i;
-            } else {
+            } else {    // Set the indices of the cards' matches
                 int index = cardResource.firstCardIndex;
                 cardsOnBoard.get(index).matchIndex = i;
                 card.matchIndex = index;
@@ -128,6 +133,7 @@ public class MainGameActivity extends AppCompatActivity {
         }
     }
 
+    /* Data associated with a card resource: card number, drawable ID, number available, index of its match */
     private class CardResource {
         private int cardNumber;
         private int drawableId;
@@ -141,6 +147,7 @@ public class MainGameActivity extends AppCompatActivity {
         }
     }
 
+    /* Data associated with each card on the grid */
     private class Card {
         private ImageButton button;
         private boolean matched;
@@ -149,6 +156,7 @@ public class MainGameActivity extends AppCompatActivity {
         private int layoutIndex;
         private int matchIndex;
 
+        /* Sets Card fields and renders card image in GUI */
         private Card(int drawableId, int cardNumber, int layoutIndex, int sideLength, int paddingLength) {
             this.drawableId = drawableId;
             this.cardNumber = cardNumber;
@@ -161,72 +169,84 @@ public class MainGameActivity extends AppCompatActivity {
             button.setBackground(null);
             button.setPadding(paddingLength, paddingLength, paddingLength, paddingLength);
             button.setLayoutParams(new LinearLayout.LayoutParams(sideLength, sideLength));
-
-            button.setOnClickListener(view -> {
-                flipCard(this);
-            });
-
+            button.setOnClickListener(view -> flipCard(this));
             grid.addView(button);
         }
     }
 
+    /* Actions to take when a card is flipped */
     private synchronized void flipCard(Card card) {
         if (allowCardFlips && !card.matched && lastFlippedCardIndex != card.layoutIndex) {
             allowCardFlips = false;
             score++;
-            card.button.setImageResource(card.drawableId);
+            card.button.setImageResource(card.drawableId); // Set card image to face-up in GUI
             if (lastFlippedCardIndex == -1) { // First card in pair flipped
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        allowCardFlips = true;
-                    }
-                }, 10);
-                lastFlippedCardIndex = card.layoutIndex;
-            } else if (lastFlippedCardIndex == card.matchIndex) { // Match found
-                allowCardFlips = false;
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        Card otherCard = cardsOnBoard.get(lastFlippedCardIndex);
-                        numberOfCards -= 2;
-                        card.matched = true;
-                        otherCard.matched = true;
-                        card.button.setImageResource(R.drawable.card_match);
-                        otherCard.button.setImageResource(R.drawable.card_match);
-                        lastFlippedCardIndex = -1;
-                        timer.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                card.button.setImageResource(R.drawable.empty_card_slot);
-                                otherCard.button.setImageResource(R.drawable.empty_card_slot);
-                            }
-                        }, 200);
-                        if (numberOfCards <= 0) {
-                            gameOver();
-                        } else {
-                            allowCardFlips = true;
-                        }
-                    }
-                }, 300);
-            } else { // Bad match
-                allowCardFlips = false;
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        Card otherCard = cardsOnBoard.get(lastFlippedCardIndex);
-                        card.button.setImageResource(R.drawable.card_back);
-                        otherCard.button.setImageResource(R.drawable.card_back);
-                        lastFlippedCardIndex = -1;
-                        allowCardFlips = true;
-                    }
-                }, 500);
+                firstInPairFlipped(card);
+            } else if (lastFlippedCardIndex == card.matchIndex) { // Matching pair found
+                matchingCardFlipped(card);
+            } else { // Non-matching pair
+                notMatchingCardFlipped(card);
             }
         }
     }
 
+    /* First card in pair flipped */
+    private void firstInPairFlipped(Card card) {
+        // Set timer for slight delay before allowing player to flip another (prevent simultaneous flips)
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                allowCardFlips = true;
+            }
+        }, 10);
+        lastFlippedCardIndex = card.layoutIndex;
+    }
+
+    /* Second card flipped and a match was found */
+    private void matchingCardFlipped(Card card) {
+        timer.schedule(new TimerTask() { // First timer - delay removing card so player can see match, then display "matched" images
+            @Override
+            public void run() {
+                Card otherCard = cardsOnBoard.get(lastFlippedCardIndex);
+                numberOfCards -= 2;
+                card.matched = true;
+                otherCard.matched = true;
+                card.button.setImageResource(R.drawable.card_match);
+                otherCard.button.setImageResource(R.drawable.card_match);
+                lastFlippedCardIndex = -1;
+                timer.schedule(new TimerTask() { // Second timer - remove "matched" images and set empty slots
+                    @Override
+                    public void run() {
+                        card.button.setImageResource(R.drawable.empty_card_slot);
+                        otherCard.button.setImageResource(R.drawable.empty_card_slot);
+                    }
+                }, 200);
+                if (numberOfCards <= 0) { // All matches have been found
+                    gameOver();
+                } else {
+                    allowCardFlips = true;
+                }
+            }
+        }, 300);
+    }
+
+    /* Second card flipped and does not match first card */
+    private void notMatchingCardFlipped(Card card) {
+        // Set timer for delay to allow player to memorize card images
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Card otherCard = cardsOnBoard.get(lastFlippedCardIndex);
+                card.button.setImageResource(R.drawable.card_back);
+                otherCard.button.setImageResource(R.drawable.card_back);
+                lastFlippedCardIndex = -1;
+                allowCardFlips = true;
+            }
+        }, 500);
+    }
+
+    /* All cards cleared - end the game by going to next activity */
     private void gameOver() {
-        //Log.d("EndGame", "Game Over called");
         Intent intent = new Intent(this, GameOverActivity.class);
         intent.putExtra("score", score);
         startActivity(intent);

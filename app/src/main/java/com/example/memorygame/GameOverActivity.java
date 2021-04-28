@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+// Third Activity - Game Over & Display Score (number of card flips)
 public class GameOverActivity extends AppCompatActivity {
 
     @Override
